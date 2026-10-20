@@ -13,46 +13,38 @@ datasource db {
 }
 
 
-
-model Profile {
-  id  Int @id @default(autoincrement())
-  bio String?
-  userId  Int @unique
-  user  User  @relation(fields: [userId], references: [id])
+model User {
+  id        Int       @id @default(autoincrement())
+  username  String    @unique
+  email     String    @unique
+  posts     Post[]
+  comments  Comment[]
+  likes     Like[]
 }
 
 model Post {
-  id  Int @id @default(autoincrement())
-  title String
-  content String
-  userId  Int
-  user  User  @relation(fields: [userId], references: [id])
-}
-
-model User {
-  id  Int @id @default(autoincrement())
-  name  String
-  email String  @unique
-  profile Profile?
-  posts Post[]
-  // likedComment  LikedComment[]
-  likeCom Comment[]
+  id        Int       @id @default(autoincrement())
+  caption   String
+  authorId  Int
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+  likes     Like[]
 }
 
 model Comment {
-  id  Int @id @default(autoincrement())
-  content String
-  // likedBy LikedComment[]
-  likeUser  User[]
+  id        Int      @id @default(autoincrement())
+  content   String
+  authorId  Int
+  postId    Int
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
 }
 
-// model LikedComment {
-//   id  Int @default(autoincrement())
-//   userId  Int
-//   commentId Int
-//   createdAt 
-//   user  User  @relation(fields: [userId], references: [id])
-//   comment Comment @relation(fields: [commentId], references: [id])
+model Like {
+  userId Int
+  postId Int
+  user   User @relation(fields: [userId], references: [id])
+  post   Post @relation(fields: [postId], references: [id])
 
-//   @@id([userId, commentId])
-// }
+  @@id([userId, postId])
+}
