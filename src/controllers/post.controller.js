@@ -48,6 +48,11 @@ export const getPosts = async (req, res) => {
             authorId,
             likedByUserId,
             hasComments,
+            excludeCaption,
+            authorUsername,
+            excludeAuthorUsername,
+            commentContains,
+            everyCommentContains,
             sortBy,
             order,
             page,
@@ -55,65 +60,168 @@ export const getPosts = async (req, res) => {
         } = req.query;
 
         const where = {};
+        const conditions = [];
 
-        // Search posts by caption
+        // 1. Search caption OR author's username
         if (q) {
-            where.caption = {
-                contains: q,
-                mode: "insensitive"
-            };
+            conditions.push({
+                OR: [
+                    {
+                        caption: {
+                            contains: q,
+                            mode: "insensitive"
+                        }
+                    },
+                    {
+                        author: {
+                            is: {
+                                username: {
+                                    contains: q,
+                                    mode: "insensitive"
+                                }
+                            }
+                        }
+                    }
+                ]
+            });
         }
 
-        // Filter posts by author
+        // 2. Filter by author ID
         if (authorId) {
-            where.authorId = Number(authorId);
+            conditions.push({
+                authorId: Number(authorId)
+            });
         }
 
-        // Find posts liked by a particular user
+        // 3. Filter by user who liked the post
         if (likedByUserId) {
-            where.likes = {
-                some: {
-                    userId: Number(likedByUserId)
+            conditions.push({
+                likes: {
+                    some: {
+                        userId: Number(likedByUserId)
+                    }
                 }
-            };
+            });
         }
 
-        // Find posts with or without comments
+        // 4. Filter posts that have comments
         if (hasComments === "true") {
-            where.comments = {
-                some: {}
-            };
+            conditions.push({
+                comments: {
+                    some: {}
+                }
+            });
         }
 
+        // 5. Filter posts that have no comments
         if (hasComments === "false") {
-            where.comments = {
-                none: {}
-            };
+            conditions.push({
+                comments: {
+                    none: {}
+                }
+            });
         }
 
+        // 6. Exclude captions containing specific text
+        if (excludeCaption) {
+            conditions.push({
+                NOT: {
+                    caption: {
+                        contains: excludeCaption,
+                        mode: "insensitive"
+                    }
+                }
+            });
+        }
+
+        // 7. Filter by author's username
+        if (authorUsername) {
+            conditions.push({
+                author: {
+                    is: {
+                        username: {
+                            equals: authorUsername,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            });
+        }
+
+        // 8. Exclude posts by a particular username
+        if (excludeAuthorUsername) {
+            conditions.push({
+                author: {
+                    isNot: {
+                        username: {
+                            equals: excludeAuthorUsername,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            });
+        }
+
+        // 9. Find posts with at least one matching comment
+        if (commentContains) {
+            conditions.push({
+                comments: {
+                    some: {
+                        content: {
+                            contains: commentContains,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            });
+        }
+
+        // 10. Find posts where every comment matches
+        if (everyCommentContains) {
+            conditions.push({
+                comments: {
+                    every: {
+                        content: {
+                            contains: everyCommentContains,
+                            mode: "insensitive"
+                        }
+                    }
+                }
+            });
+        }
+
+        // Apply all supplied conditions together
+        if (conditions.length > 0) {
+            where.AND = conditions;
+        }
+
+        // Pagination
         const currentPage = Number(page) || 1;
         const pageSize = Number(limit) || 10;
 
+        if (
+            !Number.isInteger(currentPage) ||
+            !Number.isInteger(pageSize) ||
+            currentPage < 1 ||
+            pageSize < 1
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid page or limit"
+            });
+        }
+
+        // Sorting
         const allowedSortFields = ["id", "caption"];
+
         const sortField = allowedSortFields.includes(sortBy)
             ? sortBy
             : "id";
 
         const sortOrder = order === "asc" ? "asc" : "desc";
 
-        const posts = await prisma.post.findMany({
-            where,
-            include: {
-                author: true,
-                comments: true,
-                likes: true
-            },
-            orderBy: {
-                [sortField]: sortOrder
-            },
-            skip: (currentPage - 1) * pageSize,
-            take: pageSize
-        });
+        // Find all posts with matching condition
+        
 
         return res.status(200).json({
             success: true,
@@ -136,22 +244,8 @@ export const getPostById = async (req, res) => {
     try {
         const id = Number(req.params.id);
 
-        const post = await prisma.post.findUnique({
-            where: { id },
-            include: {
-                author: true,
-                comments: {
-                    include: {
-                        author: true
-                    }
-                },
-                likes: {
-                    include: {
-                        user: true
-                    }
-                }
-            }
-        });
+        // Find a post with given id and should contain likes, author and comments as well
+        
 
         if (!post) {
             return res.status(404).json({
@@ -180,9 +274,8 @@ export const updatePost = async (req, res) => {
         const id = Number(req.params.id);
         const { caption } = req.body;
 
-        const existingPost = await prisma.post.findUnique({
-            where: { id }
-        });
+        // Find a post with given id
+        
 
         if (!existingPost) {
             return res.status(404).json({
@@ -198,10 +291,8 @@ export const updatePost = async (req, res) => {
             });
         }
 
-        const post = await prisma.post.update({
-            where: { id },
-            data: { caption }
-        });
+        // Update post with given id and caption
+        
 
         return res.status(200).json({
             success: true,
@@ -223,9 +314,8 @@ export const deletePost = async (req, res) => {
     try {
         const id = Number(req.params.id);
 
-        const post = await prisma.post.findUnique({
-            where: { id }
-        });
+        // Find a post with given id
+        
 
         if (!post) {
             return res.status(404).json({
@@ -234,9 +324,8 @@ export const deletePost = async (req, res) => {
             });
         }
 
-        await prisma.post.delete({
-            where: { id }
-        });
+        // Delete a post with given id
+        
 
         return res.status(200).json({
             success: true,
@@ -265,9 +354,8 @@ export const likePost = async (req, res) => {
             });
         }
 
-        const post = await prisma.post.findUnique({
-            where: { id: postId }
-        });
+        // Find a post with given id
+        
 
         if (!post) {
             return res.status(404).json({
@@ -276,11 +364,8 @@ export const likePost = async (req, res) => {
             });
         }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                id: Number(userId)
-            }
-        });
+        // Find a user with given id
+        
 
         if (!user) {
             return res.status(404).json({
@@ -289,14 +374,8 @@ export const likePost = async (req, res) => {
             });
         }
 
-        const existingLike = await prisma.like.findUnique({
-            where: {
-                userId_postId: {
-                    userId: Number(userId),
-                    postId
-                }
-            }
-        });
+        // Check if like already exists
+        
 
         if (existingLike) {
             return res.status(409).json({
@@ -305,20 +384,8 @@ export const likePost = async (req, res) => {
             });
         }
 
-        const like = await prisma.like.create({
-            data: {
-                user: {
-                    connect: {
-                        id: Number(userId)
-                    }
-                },
-                post: {
-                    connect: {
-                        id: postId
-                    }
-                }
-            }
-        });
+        // Create a new like with given user and post
+        
 
         return res.status(201).json({
             success: true,
@@ -341,14 +408,8 @@ export const unlikePost = async (req, res) => {
         const postId = Number(req.params.id);
         const userId = Number(req.params.userId);
 
-        const existingLike = await prisma.like.findUnique({
-            where: {
-                userId_postId: {
-                    userId,
-                    postId
-                }
-            }
-        });
+        // Check if like already exists
+        
 
         if (!existingLike) {
             return res.status(404).json({
@@ -357,14 +418,8 @@ export const unlikePost = async (req, res) => {
             });
         }
 
-        await prisma.like.delete({
-            where: {
-                userId_postId: {
-                    userId,
-                    postId
-                }
-            }
-        });
+        // Delete the existing like
+        
 
         return res.status(200).json({
             success: true,

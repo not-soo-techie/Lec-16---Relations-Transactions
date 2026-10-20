@@ -12,11 +12,8 @@ export const createComment = async (req, res) => {
             });
         }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                id: Number(authorId)
-            }
-        });
+        // Find user with given id
+        
 
         if (!user) {
             return res.status(404).json({
@@ -25,11 +22,8 @@ export const createComment = async (req, res) => {
             });
         }
 
-        const post = await prisma.post.findUnique({
-            where: {
-                id: Number(postId)
-            }
-        });
+        // Find post with given id
+        
 
         if (!post) {
             return res.status(404).json({
@@ -38,25 +32,8 @@ export const createComment = async (req, res) => {
             });
         }
 
-        const comment = await prisma.comment.create({
-            data: {
-                content,
-                author: {
-                    connect: {
-                        id: Number(authorId)
-                    }
-                },
-                post: {
-                    connect: {
-                        id: Number(postId)
-                    }
-                }
-            },
-            include: {
-                author: true,
-                post: true
-            }
-        });
+        // Add comment of given user under given post
+        
 
         return res.status(201).json({
             success: true,
@@ -85,16 +62,8 @@ export const getComments = async (req, res) => {
             where.postId = Number(postId);
         }
 
-        const comments = await prisma.comment.findMany({
-            where,
-            include: {
-                author: true,
-                post: true
-            },
-            orderBy: {
-                id: "desc"
-            }
-        });
+        // Find all comments, filter is optional
+        
 
         return res.status(200).json({
             success: true,
@@ -123,9 +92,8 @@ export const updateComment = async (req, res) => {
             });
         }
 
-        const existingComment = await prisma.comment.findUnique({
-            where: { id }
-        });
+        // Find existing comment with given id
+        
 
         if (!existingComment) {
             return res.status(404).json({
@@ -134,10 +102,8 @@ export const updateComment = async (req, res) => {
             });
         }
 
-        const comment = await prisma.comment.update({
-            where: { id },
-            data: { content }
-        });
+        // Update comment with given id and content
+        
 
         return res.status(200).json({
             success: true,
@@ -159,9 +125,8 @@ export const deleteComment = async (req, res) => {
     try {
         const id = Number(req.params.id);
 
-        const existingComment = await prisma.comment.findUnique({
-            where: { id }
-        });
+        // Find existing comment with given id
+        
 
         if (!existingComment) {
             return res.status(404).json({
@@ -170,9 +135,8 @@ export const deleteComment = async (req, res) => {
             });
         }
 
-        await prisma.comment.delete({
-            where: { id }
-        });
+        // Delete comment with given id
+        
 
         return res.status(200).json({
             success: true,

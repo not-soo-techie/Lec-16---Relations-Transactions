@@ -1,6 +1,6 @@
 import request from "supertest";
 import app from "../src/app.js";
-import prisma from "../src/db.js";
+import prisma from "../src/config/db.js";
 
 export { request, app, prisma };
 
@@ -9,6 +9,21 @@ export async function resetDb() {
   await prisma.comment.deleteMany();
   await prisma.post.deleteMany();
   await prisma.user.deleteMany();
+}
+
+
+export async function expectPrismaCall(model, method, action) {
+    const spy = jest.spyOn(model, method);
+
+    try {
+        const response = await action();
+
+        expect(spy).toHaveBeenCalled();
+
+        return response;
+    } finally {
+        spy.mockRestore();
+    }
 }
 
 export async function user(data = {}) {
