@@ -12,3 +12,47 @@ datasource db {
   provider = "postgresql"
 }
 
+
+
+model Profile {
+  id  Int @id @default(autoincrement())
+  bio String?
+  userId  Int @unique
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model Post {
+  id  Int @id @default(autoincrement())
+  title String
+  content String
+  userId  Int
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model User {
+  id  Int @id @default(autoincrement())
+  name  String
+  email String  @unique
+  profile Profile?
+  posts Post[]
+  // likedComment  LikedComment[]
+  likeCom Comment[]
+}
+
+model Comment {
+  id  Int @id @default(autoincrement())
+  content String
+  // likedBy LikedComment[]
+  likeUser  User[]
+}
+
+// model LikedComment {
+//   id  Int @default(autoincrement())
+//   userId  Int
+//   commentId Int
+//   createdAt 
+//   user  User  @relation(fields: [userId], references: [id])
+//   comment Comment @relation(fields: [commentId], references: [id])
+
+//   @@id([userId, commentId])
+// }
