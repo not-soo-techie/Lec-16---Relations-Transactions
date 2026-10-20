@@ -12,11 +12,8 @@ export const createPost = async (req, res) => {
             });
         }
 
-        const user = await prisma.user.findUnique({
-            where: {
-                id: Number(authorId)
-            }
-        });
+        // Find the user with id = authorId
+        
 
         if (!user) {
             return res.status(404).json({
@@ -25,19 +22,8 @@ export const createPost = async (req, res) => {
             });
         }
 
-        const post = await prisma.post.create({
-            data: {
-                caption,
-                author: {
-                    connect: {
-                        id: Number(authorId)
-                    }
-                }
-            },
-            include: {
-                author: true
-            }
-        });
+        // Create post
+        
 
         return res.status(201).json({
             success: true,
