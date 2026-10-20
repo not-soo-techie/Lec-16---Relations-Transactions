@@ -11,21 +11,6 @@ export async function resetDb() {
   await prisma.user.deleteMany();
 }
 
-
-export async function expectPrismaCall(model, method, action) {
-    const spy = jest.spyOn(model, method);
-
-    try {
-        const response = await action();
-
-        expect(spy).toHaveBeenCalled();
-
-        return response;
-    } finally {
-        spy.mockRestore();
-    }
-}
-
 export async function user(data = {}) {
   const suffix = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   return prisma.user.create({ data: {

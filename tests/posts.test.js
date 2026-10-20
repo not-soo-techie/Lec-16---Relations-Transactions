@@ -40,35 +40,13 @@ describe("Posts", () => {
     );
   });
 
-  // test("P06 gets all posts", async () => {
-  //   const u = await user();
-  //   await post(u.id, "one");
-  //   await post(u.id, "two");
-  //   const r = await request(app).get("/api/posts");
-  //   ok(r);
-  //   expect(r.body.data).toHaveLength(2);
-  // });
-
-
-  test("P06 fetches all posts using findMany", async () => {
-      const author = await user();
-
-      const p1 = await post(author.id, "First post");
-      const p2 = await post(author.id, "Second post");
-
-      const response = await expectPrismaCall(
-          prisma.post,
-          "findMany",
-          () => request(app).get("/api/posts")
-      );
-
-      ok(response, 200);
-
-      expect(response.body.data).toHaveLength(2);
-
-      expect(
-          response.body.data.map(post => post.id).sort((a, b) => a - b)
-      ).toEqual([p1.id, p2.id].sort((a, b) => a - b));
+  test("P06 gets all posts", async () => {
+    const u = await user();
+    await post(u.id, "one");
+    await post(u.id, "two");
+    const r = await request(app).get("/api/posts");
+    ok(r);
+    expect(r.body.data).toHaveLength(2);
   });
 
 
@@ -78,39 +56,13 @@ describe("Posts", () => {
     expect(r.body.data).toEqual([]);
   });
 
-  // test("P08 includes post author", async () => {
-  //   const f = await socialFixture();
-  //   const r = await request(app).get("/api/posts");
-  //   ok(r);
-  //   expect(
-  //     r.body.data.find((p) => p.id === f.posts.p1.id).author.username,
-  //   ).toBe("rahul");
-  // });
-
-
-  test("P08 returns each post with its author", async () => {
-      const author = await user({
-          username: "rahul",
-          email: "rahul@example.com"
-      });
-
-      const p = await post(author.id, "Learning Prisma");
-
-      const response = await expectPrismaCall(
-          prisma.post,
-          "findMany",
-          () => request(app).get("/api/posts")
-      );
-
-      ok(response, 200);
-
-      const returnedPost = response.body.data.find(
-          item => item.id === p.id
-      );
-
-      expect(returnedPost).toBeDefined();
-      expect(returnedPost.author.id).toBe(author.id);
-      expect(returnedPost.author.username).toBe("rahul");
+  test("P08 includes post author", async () => {
+    const f = await socialFixture();
+    const r = await request(app).get("/api/posts");
+    ok(r);
+    expect(
+      r.body.data.find((p) => p.id === f.posts.p1.id).author.username,
+    ).toBe("rahul");
   });
 
 
@@ -132,38 +84,14 @@ describe("Posts", () => {
     );
   });
 
-  // test("P11 filters by authorId only", async () => {
-  //   const f = await socialFixture();
-  //   const r = await request(app).get(`/api/posts?authorId=${f.users.rahul.id}`);
-  //   ok(r);
-  //   expect(r.body.data.map((p) => p.id).sort()).toEqual(
-  //     [f.posts.p1.id, f.posts.p2.id].sort(),
-  //   );
-  // });
-
-
-  test("P11 filters posts by authorId", async () => {
-      const author1 = await user();
-      const author2 = await user();
-
-      const p1 = await post(author1.id, "Author one post");
-      const p2 = await post(author2.id, "Author two post");
-
-      const response = await expectPrismaCall(
-          prisma.post,
-          "findMany",
-          () => request(app).get(`/api/posts?authorId=${author1.id}`)
-      );
-
-      ok(response, 200);
-
-      expect(response.body.data.map(post => post.id)).toEqual([p1.id]);
-
-      expect(
-          response.body.data.every(post => post.authorId === author1.id)
-      ).toBe(true);
+  test("P11 filters by authorId only", async () => {
+    const f = await socialFixture();
+    const r = await request(app).get(`/api/posts?authorId=${f.users.rahul.id}`);
+    ok(r);
+    expect(r.body.data.map((p) => p.id).sort()).toEqual(
+      [f.posts.p1.id, f.posts.p2.id].sort(),
+    );
   });
-
 
   test("P12 filters caption with q", async () => {
     const f = await socialFixture();
@@ -319,37 +247,18 @@ describe("Posts", () => {
     expect(r.body.data).toEqual([]);
   });
 
-  // test("P29 gets one post with nested author, comments and likes", async () => {
-  //   const f = await socialFixture();
-  //   const r = await request(app).get(`/api/posts/${f.posts.p1.id}`);
-  //   ok(r);
-  //   expect(r.body.data.author.username).toBe("rahul");
-  //   expect(r.body.data.comments).toHaveLength(2);
-  //   expect(r.body.data.likes).toHaveLength(2);
-  // });
-
-  // test("P30 unknown post returns 404", async () => {
-  //   fail(await request(app).get("/api/posts/99999999"), 404);
-  // });
-
-
-  test("P29 fetches one post using findUnique", async () => {
-      const author = await user();
-      const p = await post(author.id, "Specific post");
-
-      const response = await expectPrismaCall(
-          prisma.post,
-          "findUnique",
-          () => request(app).get(`/api/posts/${p.id}`)
-      );
-
-      ok(response, 200);
-
-      expect(response.body.data.id).toBe(p.id);
-      expect(response.body.data.caption).toBe("Specific post");
-      expect(response.body.data.authorId).toBe(author.id);
+  test("P29 gets one post with nested author, comments and likes", async () => {
+    const f = await socialFixture();
+    const r = await request(app).get(`/api/posts/${f.posts.p1.id}`);
+    ok(r);
+    expect(r.body.data.author.username).toBe("rahul");
+    expect(r.body.data.comments).toHaveLength(2);
+    expect(r.body.data.likes).toHaveLength(2);
   });
 
+  test("P30 unknown post returns 404", async () => {
+    fail(await request(app).get("/api/posts/99999999"), 404);
+  });
 
   test("P31 updates caption", async () => {
     const u = await user();
